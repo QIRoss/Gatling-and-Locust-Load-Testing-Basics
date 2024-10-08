@@ -1,0 +1,39 @@
+services:
+  fastapi:
+    build:
+      context: ./app
+    container_name: fastapi-app
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    networks:
+      - fastapi-network
+
+  locust:
+    image: locustio/locust
+    container_name: locust
+    volumes:
+      - ./locust:/mnt/locust
+    command: >
+      locust -f /mnt/locust/locustfile.py --host http://fastapi:8000
+    ports:
+      - "8089:8089"
+    depends_on:
+      - fastapi
+    networks:
+      - fastapi-network
+
+  gatling:
+    image: denvazh/gatling:latest
+    container_name: gatling
+    volumes:
+      - ./gatling:/opt/gatling/user-files/simulations
+    entrypoint: gatling.sh -s FastAPITestSimulation
+    depends_on:
+      - fastapi
+    networks:
+      - fastapi-network
+
+networks:
+  fastapi-network:
+    driver: bridge
